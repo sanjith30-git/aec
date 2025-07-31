@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Campus Navigation System</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+
+  <style>
+    body, html { margin: 0; padding: 0; }
+    #map { height: 100vh; width: 100vw; }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    select {
+      padding: 5px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+A<body>
+  <div id="controls">
+    <label for="destination">Choose Destination:</label>
+    <select id="destination">
+      <option value="">-- Select Block --</option>
+      <option value="gate">Gate</option>
+      <option value="center">Arunai Center</option>
+      <option value="gateway">Arunai Gateway</option>
+      <option value="acaudi">AC Auditorium</option>
+      <option value="canteen">Arunai Canteen</option>
+      <option value="hostel1">Mother Theresa Hostel</option>
+      <option value="temple">Arunai Temple</option>
+      <option value="guest">Guest House</option>
+      <option value="mens">Mens Hostel</option>
+      <option value="openaudi">Open Auditorium</option>
+      <option value="mess">Boys Mess</option>
+      <option value="mech">Mechanical Dept</option>
+      <option value="civil">Civil Block</option>
+      <option value="it">IT Block</option>
+      <option value="biotech">Biotech Block</option>
+      <option value="wrestroom">Womens Restroom</option>
+      <option value="brestroom1">Boys Restroom 1</option>
+      <option value="ece">ECE Block</option>
+      <option value="eee">EEE Block</option>
+      <option value="cse">CSE Block</option>
+      <option value="has">H A S Block</option>
+      <option value="store">Store</option>
+      <option value="parking">Parking Area</option>
+      <option value="security">Security Block</option>
+    </select>
+  </div>
+
+  <div id="map"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.min.js"></script>
+
+  <script>
+    const map = L.map('map').setView([12.192850, 79.083730], 18);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 22,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const buildings = {
+     gate:        { name: "Gate", lat: 12.193100, lng: 79.084515 },
+      center:      { name: "Arunai Center", lat: 12.192708, lng:  79.083666},
+      gateway:     { name: "Arunai Gateway", lat: 12.192414, lng: 79.083265 },
+      acaudi:      { name: "AC Auditorium", lat: 12.192382, lng:  79.083698 },
+      canteen:     { name: "Arunai Canteen", lat: 12.192030, lng: 79.083649 },
+      hostel1:     { name: "Mother Theresa Hostel", lat: 12.191600, lng: 79.082926 },
+      temple:      { name: "Arunai Temple", lat: 12.192394, lng:  79.082822 },
+      guest:       { name: "Guest House", lat: 12.192339,  lng: 79.082307 },
+      mens:        { name: "Mens Hostel", lat: 12.192641,  lng: 79.082147 },
+      openaudi:    { name: "Open Auditorium", lat: 12.192992, lng: 79.082720 },
+      mess:        { name: "Boys Mess", lat: 12.193069, lng: 79.082069 },
+      mech:        { name: "Mechanical Dept", lat: 12.193446, lng: 79.082622 },
+      civil:       { name: "Civil Block", lat: 12.193459, lng: 79.082442 },
+      it:          { name: "IT Block", lat: 12.193521, lng: 79.083236 },
+      biotech:     { name: "Biotech Block", lat: 12.193817, lng: 79.082816 },
+      wrestroom:   { name: "Womens Restroom", lat: 12.193818,lng: 79.083408 },
+      brestroom1:  { name: "Boys Restroom 1", lat: 12.192795, lng: 79.082949 },
+      ece:         { name: "ECE Block", lat: 12.192571, lng: 79.082783 },
+      eee:         { name: "EEE Block", lat: 12.193138, lng: 79.083092 },
+      cse:         { name: "CSE Block", lat: 12.192838, lng: 79.083230 },
+      has:         { name: "H A S Block", lat: 12.193401, lng:  79.083641 },
+      store:       { name: "Store", lat: 12.192168, lng: 79.084514 },
+      parking:     { name: "Parking Area", lat: 12.192153, lng: 79.084343 },
+      security:    { name: "Security Block", lat: 12.193018, lng: 79.084381 }
+    };
+
+    for (const key in buildings) {
+      const b = buildings[key];
+      L.marker([b.lat, b.lng]).addTo(map).bindPopup(b.name);
+    }
+
+    let userMarker = null;
+    let routeControl = null;
+    let userLocation = null;
+
+    // Detect user location
+    map.locate({ setView: true, maxZoom: 18 });
+
+    map.on('locationfound', function(e) {
+      userLocation = e.latlng;
+      if (userMarker) map.removeLayer(userMarker);
+      userMarker = L.circleMarker(userLocation, {
+        radius: 8,
+        fillColor: 'blue',
+        color: '#000',
+        weight: 1,
+        opacity: 1,
+        fillOpacity: 0.8
+      }).addTo(map).bindPopup("You are here").openPopup();
+    });
+
+    map.on('locationerror', function() {
+      alert("Could not detect your current location.");
+    });
+
+    document.getElementById('destination').addEventListener('change', function () {
+      const selected = this.value;
+      if (!selected || !userLocation) {
+        alert("Ensure location is active and a block is selected.");
+        return;
+      }
+
+      const target = buildings[selected];
+      if (routeControl) {
+        map.removeControl(routeControl);
+      }
+
+      routeControl = L.Routing.control({
+        waypoints: [
+          L.latLng(userLocation.lat, userLocation.lng),
+          L.latLng(target.lat, target.lng)
+        ],
+        lineOptions: {
+          styles: [{ color: 'blue', opacity: 0.7, weight: 5 }]
+        },
+        router: L.Routing.osrmv1({
+          serviceUrl: 'https://router.project-osrm.org/route/v1'
+        }),
+        show: false,
+        addWaypoints: false
+      }).addTo(map);
+    });
+  </script>
+</body>
+</html>
